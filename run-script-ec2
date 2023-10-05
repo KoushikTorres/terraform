@@ -1,0 +1,115 @@
+Tasks To Be Performed: 
+1.Destroy the previous deployments 
+2.Create a script to install Apache2 
+3.Run this script on a newly created EC2 instance 
+4.Print the IP address of the instance in a file on the local once deployed.
+
+STEP1:  Create a main.tf which will create a new ec2
+
+Vi main.tf
+CODE
+---------------------------------------------------------
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.16"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
+provider "aws" {
+  region  = "us-east-2"
+}
+
+resource "aws_instance" "app_server" {
+  ami           = "ami-024e6efaf93d85776"
+  instance_type = "t2.micro"
+  key_name      = "Asg"      # Specify your SSH key 
+  tags = {
+    Name = "terraform-iac-1"
+  }
+}
+----------------------------------------------------------
+#terraform init
+#terraform plan
+#terraform apply
+
+
+
+STEP2: Create script.sh
+
+Vi script.sh
+-----------------------------------------------------
+#!/bin/bash
+sudo apt update -y
+sudo apt install apache2 -y
+sudo systemctl start apache2
+-----------------------------------------------------
+STEP3: CREATE provisioner to run script.
+
+Vi main.tf
+------------------------------------------------------
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.16"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
+provider "aws" {
+  region  = "us-east-2"
+}
+
+resource "aws_instance" "app_server" {
+  ami           = "ami-024e6efaf93d85776"
+  instance_type = "t2.micro"
+  key_name      = "Asg"      # Specify your SSH key 
+  tags = {
+    Name = "terraform-iac-1"
+  }
+}
+##################################################################################
+# Provisioner to run a script on the created EC2 instance
+resource "null_resource" "app_provisioner" {
+  depends_on = [aws_instance.app_server]
+
+  # Connection details for SSH
+  connection {
+    type        = "ssh"
+    host        = aws_instance.app_server.public_ip
+    user        = "ubuntu"  # Change to the appropriate username for your AMI
+    private_key = file("/home/ubuntu/Asg.pem")  # Provide the path to your private key
+  }
+  provisioner "file" {
+    source      = "script.sh"
+    destination = "/tmp/script.sh"
+  }
+  # Provisioner to run the script
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/script.sh",  # Make the script executable
+      "/tmp/script.sh args"       # Run the script with arguments
+    ]
+  }
+}
+######################################################################
+# Output the IP address of the EC2 instance to a local file
+resource "local_file" "instance_ip" {
+  filename = "instance_ip.txt"
+  content  = aws_instance.app_server.public_ip
+}
+------------------------------------------------------
+STEP4: check the resouces created.
+
+Check apache:
+
+OUTPUT:
+
+SUCCESSFULLY CREATED!
