@@ -1,0 +1,99 @@
+MODULE8-TERRAFORM-ASSIGNMENT2
+
+Tasks To Be Performed: 
+1.Destroy the previous deployment 
+2.Create a new EC2 instance with an Elastic IP
+
+STEP1: Create an new terraform.tf file
+
+Vi main.tf
+----------------------------------------------------------------------
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.16"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
+provider "aws" {
+  region  = "us-east-2"
+}
+#adding resource of elastic ip
+
+resource "aws_eip" "test-eip" {
+  instance = null
+}
+
+resource "aws_instance" "test-server" {
+  ami           = "ami-024e6efaf93d85776"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "test-server"
+  }
+}
+------------------------------------------------------------------------------
+Execute:
+
+Terraform plan and terraform apply
+
+
+
+
+ATTACH elastic ip
+
+Vi main.yaml
+---------------------------------------------------------------------------
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.16"
+    }
+  }
+
+  required_version = ">= 1.2.0"
+}
+
+provider "aws" {
+  region  = "us-east-2"
+}
+resource "aws_eip" "test-eip" {
+  instance = null
+}
+#ATTACHING ELASTIC IP to created ec2
+resource "aws_eip_association" "eip_assoc" {
+  instance_id   = "i-0202c52a2d8580278"
+  allocation_id = "eipalloc-059be2c6efadcacb5"
+}
+resource "aws_instance" "test-server" {
+  ami           = "ami-024e6efaf93d85776"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "test-server"
+  }
+    root_block_device {
+        delete_on_termination = true
+        encrypted             = false
+        iops                  = 100
+        tags                  = {}
+        throughput            = 0
+        volume_size           = 10
+        volume_type           = "gp2"
+    }
+}
+-------------------------------------------------------------------------------------------
+EXECUTE:
+
+Terraform plan and terraform apply
+
+OUTPUT:
+
+
+
+PUBLIC IP AND ELACTIC IP BOTH ARE SAME AND ASSOCIATION IS SUCCESS!
